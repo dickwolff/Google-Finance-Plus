@@ -3,7 +3,7 @@ import { injectable } from "inversify";
 import { PortfolioView } from "../models/portfolioView.model";
 import { BasePage } from "./base";
 
-const __headerTemplate = `<div class="IifuId GC2yM ZyUYVb">ALLOCATIE (A/D)</div>`;
+const __headerTemplate = `ALLOCATIE (A/D)`;
 
 @injectable()
 export class Portfolio implements BasePage {
@@ -55,6 +55,7 @@ export class Portfolio implements BasePage {
 
       // Create the HTML element and put the HTML inside.
       const div = document.createElement("div");
+      div.className = "IifuId GC2yM ZyUYVb allocation";
       div.innerHTML = __headerTemplate;
       tableHeader!.insertBefore(div, tableHeader!.children[5]);
     }

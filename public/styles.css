@@ -12,6 +12,25 @@
 }
 
 .allocation {
-    width: 120px;
+    width: 130px;
     margin-left: 0.5em;
+    margin-right: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.allocation strong {
+    margin-left: 0.125em;
+}
+
+.allocation .google-material-icons {
+    margin-left: 0.25em;
+}
+
+.btn-edit-allocation {
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: transparent;
 }

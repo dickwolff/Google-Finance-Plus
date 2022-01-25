@@ -1,4 +1,4 @@
-import { inject, injectable } from "inversify";
+import { inject, injectable, targetName } from "inversify";
 import parseMoney from "parse-money";
 import { CombinedPortfolioView } from "../models/combinedPortfolioView.model";
 import { PortfolioView } from "../models/portfolioView.model";
@@ -6,8 +6,7 @@ import { PortfolioService } from "../services/portfolio.service";
 import { BasePage } from "./base";
 import { Portfolio } from "./portfolio";
 
-const __pfTemplate = `<span jsname="Fe7oBc" class="NydbP oNKluc ooGEW"><div jsname="m6NnIb" class="zWwE1"><div class="JwB6zf" style="font-size: 14px;">{{percOfTotal}}%</div></div></span>`;
-const __allocationTemplate = `<div class="RL8lmf allocation">{{actual}}% / <strong>{{target}}%</strong></div>`;
+const __allocationTemplate = `{{actual}}% / <strong>{{target}}%</strong> <button class="btn-edit-allocation"><i class="google-material-icons di90jc" style="font-size: 18px;">edit</i></button>`;
 
 @injectable()
 export class Home implements BasePage {
@@ -132,6 +131,7 @@ export class Home implements BasePage {
 
                 // Create the HTML element and put the HTML inside.
                 const div = document.createElement("div");
+                div.className = "RL8lmf allocation";
                 div.innerHTML = templated;
 
                 // If the allocation element does exist, remove it first.
@@ -142,7 +142,20 @@ export class Home implements BasePage {
 
                 // Add the HTML element to the web page.
                 portfolio.firstElementChild?.firstElementChild?.parentNode?.appendChild(div);
+
+                // Attach click event handler.
+                const editButton = portfolio.querySelector(".btn-edit-allocation");
+                editButton?.addEventListener("click", () => this.setTargetAllocation(pfName));
             }
+        }
+
+        // Prevent default action when clicking on the edit button, because otherwise the client will redirect to the portfolio page.
+        const btns = document.querySelectorAll(".btn-edit-allocation");
+        for (const btn of btns) {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+            });
         }
     }
 
@@ -167,5 +180,26 @@ export class Home implements BasePage {
             subtree: true,
             attributes: true
         });
+    }
+
+    private setTargetAllocation(portfolioName: string): void {
+
+        // Todo: get actual target allocation.
+        const actualTarget = 0.00;
+
+        // Show popup asking for new target allocation.
+        const newTarget = parseFloat(prompt(`Please enter your target allocation for portfolio '${portfolioName}' (numbers only!)`, `${actualTarget}`)!);
+
+        if (isNaN(newTarget)) {
+            return alert("Target should be a number!")
+        } else if (newTarget < 0 || newTarget > 100) {
+            return alert("Target should be between 0 and 100");
+        }
+        // todo check wether combined target is total of 100.
+
+        // Set the target allocation and save changes.
+        const portfolio = this.portfolioService.getPortfolio(portfolioName);
+        portfolio!.allocationPercentageTarget = newTarget;
+        this.portfolioService.storePortfolio(portfolio!);
     }
 }
