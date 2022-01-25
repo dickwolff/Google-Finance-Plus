@@ -1,7 +1,17 @@
+/* Resize columns to accomodate space for additional fields */
+.fAThCb, .OFJocd {
+    width: 50% !important;
+}
+
 .GiH5C {
     width: 100px !important;
 }
 
 .oNKluc {
+    margin-left: 0.5em;
+}
+
+.allocation {
+    width: 120px;
     margin-left: 0.5em;
 }
