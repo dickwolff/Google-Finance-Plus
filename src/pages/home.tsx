@@ -1,20 +1,28 @@
+import { inject, injectable } from "inversify";
 import parseMoney from "parse-money";
 import { CombinedPortfolioView } from "../models/combinedPortfolioView.model";
 import { PortfolioView } from "../models/portfolioView.model";
+import { PortfolioService } from "../services/portfolio.service";
+import { BasePage } from "./base";
+import { Portfolio } from "./portfolio";
 
 const __pfTemplate = `<span jsname="Fe7oBc" class="NydbP oNKluc ooGEW"><div jsname="m6NnIb" class="zWwE1"><div class="JwB6zf" style="font-size: 14px;">{{percOfTotal}}%</div></div></span>`;
 const __allocationTemplate = `<div class="RL8lmf allocation">{{actual}}% / <strong>{{target}}%</strong></div>`;
 
-export class Home {
+@injectable()
+export class Home implements BasePage {
 
     private _observer?: MutationObserver;
     private _portfolio!: CombinedPortfolioView;
 
     /**
-     * Initialize the class and register events.
+     * Constructor.
      * 
-     * @method init()
+     * @param portfolioService Manages the portfolio data.
      */
+    constructor(@inject("PortfolioService") private readonly portfolioService: PortfolioService) { }
+
+    /** @inheritdoc */
     public init(): void {
 
         console.log("GFP", "Home", "init()");
@@ -26,9 +34,7 @@ export class Home {
         this.registerUiChanges();
     }
 
-    /**
-     * Run the portfolio logic.
-     */
+    /** @inheritdoc */
     public run(): void {
 
         console.log("GFP", "Home", "run()");
@@ -45,11 +51,7 @@ export class Home {
         }
     }
 
-    /**
-     * Destroy the component.
-     * 
-     * @method destroy()
-     */
+    /** @inheritdoc */
     public destroy(): void {
 
         console.log("GFP", "Home", "destroy()");
@@ -60,7 +62,7 @@ export class Home {
     private calculatePortfolio(): void {
 
         let totalValue = 0;
-        const portfolios: PortfolioView[] = [];
+        const existingPortfolios: PortfolioView[] = this.portfolioService.getPortfolios();
 
         // Read the total combined portfolio value from HTML.    
         const parsedTotalValue = parseMoney(`${document.querySelector(".kLnHVd")?.innerHTML.split(";")[1]}`);
@@ -75,24 +77,40 @@ export class Home {
                 const pfValueParsed = parseMoney(`${portfolio.firstElementChild?.children[1].innerHTML.split(";")[1]}`);
                 const pfPercentageValueOfTotal = (pfValueParsed!.amount / totalValue) * 100;
 
-                portfolios.push({
-                    name: pfName,
-                    value: pfValueParsed!.amount,
-                    allocationPercentageActual: pfPercentageValueOfTotal,
-                    allocationPercentageTarget: 0
-                });
-            };
+                // Check wether the portfolio exists. 
+                const existingPortfolio = existingPortfolios.find(pf => pf.name.toLocaleLowerCase() === pfName.toLocaleLowerCase());
+                if (existingPortfolio) {
+
+                    // If the portfolio exists, update the values and store the updated portfolio.
+                    existingPortfolio.value = pfValueParsed!.amount;
+                    existingPortfolio.allocationPercentageActual = pfPercentageValueOfTotal;
+                    this.portfolioService.storePortfolio(existingPortfolio);
+                } else {
+
+                    // Add the portfolio as new.
+                    this.portfolioService.storePortfolio({
+                        name: pfName,
+                        value: pfValueParsed!.amount,
+                        allocationPercentageActual: pfPercentageValueOfTotal,
+                        allocationPercentageTarget: 0
+                    });
+                };
+            }
         }
 
         // Assign portfolio.
-        this._portfolio = {
-            totalValue: totalValue,
-            portfolios: portfolios
-        }
+        this._portfolio = this.portfolioService.getCombinedPortfolio();
     }
 
     private enrichUi(): void {
-        console.log(this._portfolio)
+
+        // Check for the Portfolio elements. There should be one. 
+        // If there are more then one, remove the first.
+        const portfolioViews = document.querySelectorAll(`[jsrenderer="NDJNP"]`)
+        if (portfolioViews.length > 1) {
+            portfolioViews[0].parentNode?.removeChild(portfolioViews[0]);
+        }
+
         // Get all the sub portfolios and calculate the % of combined portfolio value.
         const portfoliosFromHtml = document.querySelector(".Swpw7c");
         if (portfoliosFromHtml) {
@@ -107,7 +125,7 @@ export class Home {
                     continue;
                 }
 
-                // Put the % value in the HTML template and add it to the webpage.
+                // Put the % values in the HTML template and add it to the webpage.
                 const templated = __allocationTemplate
                     .replace("{{actual}}", portfolioMatch.allocationPercentageActual.toFixed(2))
                     .replace("{{target}}", portfolioMatch.allocationPercentageTarget.toFixed(2));
@@ -140,7 +158,7 @@ export class Home {
         // Create observer that inspects the HTML element containing the portfolio.
         // When a mutation is detected, update the portfolio on the UI again.
         this._observer = new MutationObserver((mutations, observer) => {
-            console.log("GPF", "Home", "Detected UI updates.");
+            console.log("GPF", "Home", "registerUiChanges()", "Detected UI updates.");
             this.run();
         });
 

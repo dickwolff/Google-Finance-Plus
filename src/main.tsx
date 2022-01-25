@@ -1,13 +1,18 @@
-import { doc } from "prettier";
 import { Home } from "./pages/home";
 import { Portfolio } from "./pages/portfolio";
+import container from "./inversify.config";
 
-class GPFRouter {
+/**
+ * Main orchestrator.
+ */
+class GFPRouter {
 
   private _activePage?: any;
 
   /**
    * Init the router.
+   * 
+   * @method init()
    */
   public init(): void {
 
@@ -26,7 +31,7 @@ class GPFRouter {
 
       // Create observer to watch route changes.
       const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
+        mutations.forEach(() => {
           if (oldPath != document.location.pathname) {
             oldPath = document.location.pathname;
 
@@ -58,7 +63,12 @@ class GPFRouter {
     if (path === "/finance/") {
 
       // Google Finance Home Page.
-      this._activePage = new Home();
+      this._activePage = container.get<Home>("Home");
+    }
+    else if (path.indexOf("/finance/portfolio/") > -1) {
+
+      // Google Finance Portfolio Page.
+      this._activePage = container.get<Portfolio>("Portfolio");
     }
     else {
 
@@ -69,8 +79,7 @@ class GPFRouter {
     // Initialize active component if present.
     this._activePage?.init();
   }
-
 }
 
 // Create the Router, which initalizes all other code.
-(new GPFRouter()).init();
+(new GFPRouter()).init();
